@@ -9,18 +9,6 @@
 
 LIMINE_BASE_REVISION(1)
 
-// The Limine requests can be placed anywhere, but it is important that
-// the compiler does not optimise them away, so, in C, they should
-// NOT be made "static".
-
-struct limine_framebuffer_request framebuffer_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0
-};
-
-// GCC and Clang reserve the right to generate calls to the following
-// 4 functions even if they are not directly called.
-// Implement them as the C specification mandates.
 // DO NOT remove or rename these functions, or stuff will eventually break!
 // They CAN be moved to a different .c file.
 
@@ -95,20 +83,11 @@ void _start(void) {
         hcf();
     }
 
-    // Ensure we got a framebuffer.
-    if (framebuffer_request.response == NULL
-     || framebuffer_request.response->framebuffer_count < 1) {
-        hcf();
-    }
-
-    // Fetch the first framebuffer.
-    struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
-
-    // Note: we assume the framebuffer model is RGB with 32-bit pixels.
-    for (size_t i = 0; i < 100; i++) {
-        volatile uint32_t *fb_ptr = framebuffer->address;
-        fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff;
-    }
+    init_descriptor_tables();
+    idt_init();
+    
+    const char msg[] = "Hello World\n";
+    monitor_write(msg, sizeof(msg));
 
     // We're done, just hang...
     hcf();
